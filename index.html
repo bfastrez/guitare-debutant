@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guitare Débutant — 7 jours</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>Guitare Débutant — 7 jours</h1>
+    <p>Des mini-leçons + une voix française + exercices simples.</p>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <h2>Leçons</h2>
+      <ol id="lessonList" class="lesson-list"></ol>
+
+      <div class="progress">
+        <h3>Progression</h3>
+        <p><span id="doneCount">0</span>/7 terminées</p>
+        <button id="resetProgress" class="btn secondary">Réinitialiser</button>
+      </div>
+    </aside>
+
+    <section class="content">
+      <div class="card">
+        <div class="card-head">
+          <h2 id="lessonTitle">Choisis une leçon</h2>
+          <div class="actions">
+            <button id="speakBtn" class="btn">🔊 Écouter</button>
+            <button id="stopBtn" class="btn secondary">⏹ Stop</button>
+            <button id="toggleDoneBtn" class="btn success">✅ Marquer comme fait</button>
+          </div>
+        </div>
+
+        <div class="meta">
+          <label for="voiceSelect">Voix :</label>
+          <select id="voiceSelect"></select>
+
+          <label for="rate">Vitesse :</label>
+          <input id="rate" type="range" min="0.7" max="1.2" step="0.05" value="1" />
+          <span id="rateVal">1.00</span>
+        </div>
+
+        <article id="lessonText" class="lesson-text"></article>
+
+        <div class="video">
+          <h3>Vidéo</h3>
+          <p class="muted">Colle un lien YouTube/TikTok (ou un embed) plus tard.</p>
+          <input id="videoUrl" class="input" placeholder="Ex: https://www.youtube.com/watch?v=..." />
+          <button id="applyVideo" class="btn secondary">Appliquer</button>
+          <div id="videoFrame" class="video-frame"></div>
+        </div>
+
+        <div class="exercise">
+          <h3>Exercice du jour (timer)</h3>
+          <div class="timer-row">
+            <input id="minutes" class="input small" type="number" min="1" max="60" value="5" />
+            <span>minutes</span>
+            <button id="startTimer" class="btn">▶️ Démarrer</button>
+            <button id="stopTimer" class="btn secondary">⏹ Stop</button>
+          </div>
+          <p id="timerStatus" class="muted">Prêt.</p>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <p class="muted">Astuce : sur iPhone, ouvre ce site dans Safari puis “Ajouter à l’écran d’accueil”.</p>
+      </footer>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
