@@ -1,69 +1,390 @@
+/* ------------------ Données & utils ------------------ */
+
+function chordSVG({ name, frets, fingers, mute, open, fromFret=1 }) {
+  // frets: array length 6 (strings E A D G B e) with fret number or 0
+  // fingers: array length 6 with finger number (1-4) or 0
+  // mute/open: arrays of string indices (0..5) to mark X or O on top
+  const W = 280, H = 320;
+  const padL = 42, padR = 18, padT = 52, padB = 18;
+  const gridW = W - padL - padR;
+  const gridH = H - padT - padB;
+
+  const strings = 6;
+  const fretsCount = 5;
+
+  const xForString = (s) => padL + (gridW * s) / (strings - 1); // s: 0..5
+  const yForFretLine = (f) => padT + (gridH * f) / fretsCount;  // f: 0..5 lines
+  const yForFretCenter = (f) => {
+    // center between fret lines: f=1..5
+    const y1 = yForFretLine(f-1);
+    const y2 = yForFretLine(f);
+    return (y1 + y2) / 2;
+  };
+
+  const stringNames = ["Mi grave", "La", "Ré", "Sol", "Si", "Mi aigu"];
+  const marks = new Array(6).fill("");
+  (mute||[]).forEach(i => marks[i] = "X");
+  (open||[]).forEach(i => marks[i] = "O");
+
+  const svg = [];
+  svg.push(`<svg class="chord-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagramme accord ${name}">`);
+  svg.push(`<text x="${padL}" y="28" fill="currentColor" font-size="18" font-weight="800">${name}</text>`);
+  svg.push(`<text x="${W-padR}" y="28" fill="rgba(232,238,247,.7)" font-size="12" text-anchor="end">Case ${fromFret}</text>`);
+
+  // top markers (X/O) + string labels
+  for (let s=0; s<6; s++){
+    const x = xForString(s);
+    const mark = marks[s];
+    if (mark){
+      svg.push(`<text x="${x}" y="${padT-18}" fill="currentColor" font-size="14" text-anchor="middle" font-weight="800">${mark}</text>`);
+    }
+    svg.push(`<text x="${x}" y="${padT-2}" fill="rgba(232,238,247,.55)" font-size="10" text-anchor="middle">${stringNames[s]}</text>`);
+  }
+
+  // nut / first fret thick line
+  svg.push(`<line x1="${padL}" y1="${padT}" x2="${W-padR}" y2="${padT}" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`);
+
+  // fret lines
+  for (let f=1; f<=fretsCount; f++){
+    const y = yForFretLine(f);
+    svg.push(`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="currentColor" stroke-width="1" opacity="0.35"/>`);
+  }
+
+  // string lines
+  for (let s=0; s<strings; s++){
+    const x = xForString(s);
+    svg.push(`<line x1="${x}" y1="${padT}" x2="${x}" y2="${H-padB}" stroke="currentColor" stroke-width="1" opacity="0.35"/>`);
+  }
+
+  // finger dots
+  for (let s=0; s<6; s++){
+    const fret = frets[s];
+    const finger = fingers[s];
+    if (!fret || fret === 0) continue;
+
+    const x = xForString(s);
+    const y = yForFretCenter(fret - fromFret + 1);
+    svg.push(`<circle cx="${x}" cy="${y}" r="12" fill="currentColor" opacity="0.9"/>`);
+    if (finger){
+      svg.push(`<text x="${x}" y="${y+4}" fill="#0b0f14" font-size="12" text-anchor="middle" font-weight="900">${finger}</text>`);
+    }
+  }
+
+  svg.push(`</svg>`);
+  return svg.join("");
+}
+
+function helpBlock(items){
+  return `
+    <details class="help">
+      <summary>Problèmes fréquents (clique)</summary>
+      <ul>
+        ${items.map(i => `<li>${i}</li>`).join("")}
+      </ul>
+    </details>
+  `;
+}
+
+function coachLesson({ title, intro, steps, strum, exercise, chord }) {
+  return `
+  <div class="coach">
+    <div class="bubble">
+      <div class="who">👨‍🏫 Coach</div>
+      <div>${intro}</div>
+    </div>
+
+    <div class="grid2">
+      <div class="chord-card">
+        <div class="chord-title">
+          <b>${chord.name}</b>
+          <small>Diagramme + doigts</small>
+        </div>
+        ${chordSVG(chord)}
+        <div class="kv">
+          <div><b>Cordes à jouer</b></div><div>${chord.play}</div>
+          <div><b>Cordes à éviter</b></div><div>${chord.avoid}</div>
+          <div><b>Astuce</b></div><div>${chord.tip}</div>
+        </div>
+      </div>
+
+      <div class="chord-card">
+        <div class="chord-title"><b>Étapes</b><small>Position des doigts</small></div>
+        <div class="kv">
+          ${steps.map(s => `<div><b>${s.label}</b></div><div>${s.text}</div>`).join("")}
+        </div>
+
+        <div style="margin-top:10px" class="chord-title"><b>Rythme</b><small>à tester</small></div>
+        <div class="lesson-text" style="margin-top:0">${strum}</div>
+
+        <div style="margin-top:10px" class="chord-title"><b>Exercice</b><small>objectif</small></div>
+        <div class="lesson-text" style="margin-top:0">${exercise}</div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+/* ------------------ Leçons (B + C : texte + dialogue + visuels) ------------------ */
+
 const lessons = [
   {
     id: 1,
     title: "Jour 1 — Accord Em (Mi mineur)",
-    text: `Aujourd’hui, on apprend ton premier accord : Mi mineur (Em).
-Place ton index sur la 2e frette corde LA, et ton majeur sur la 2e frette corde RÉ.
-Les autres cordes restent à vide.
-Gratte doucement toutes les cordes : bas… bas… bas… puis bas-haut.
-Objectif : 5 minutes, propre et détendu.`
+    html: coachLesson({
+      title: "Em",
+      intro: "On commence avec <b>Mi mineur (Em)</b>. Il est simple et il sonne tout de suite “musique”.",
+      chord: {
+        name: "Em",
+        frets: [0,2,2,0,0,0],           // E A D G B e
+        fingers: [0,1,2,0,0,0],
+        mute: [],
+        open: [0,3,4,5],
+        fromFret: 1,
+        play: "✅ Toutes les cordes",
+        avoid: "🚫 Aucune",
+        tip: "Doigts arrondis + appuie près de la frette (pas au milieu)."
+      },
+      steps: [
+        { label: "Index (1)", text: "2e frette, corde <b>La</b> (5e corde)." },
+        { label: "Majeur (2)", text: "2e frette, corde <b>Ré</b> (4e corde)." },
+        { label: "Vérifie", text: "Les autres cordes sont à vide (libres). Ne touche pas les cordes voisines." },
+      ],
+      strum: "Bas — Bas — Bas — Bas-Haut",
+      exercise: "30 sec propre → 10 sec pause, répète 5 fois.",
+    }) + helpBlock([
+      "Ça “buzz” : rapproche ton doigt de la frette (sans être dessus) et appuie un peu plus.",
+      "Une corde ne sonne pas : ton doigt touche sûrement une corde voisine → arrondis le doigt.",
+      "Poignet tendu : baisse l’épaule, relâche la main, puis replace doucement."
+    ])
   },
+
   {
     id: 2,
     title: "Jour 2 — Accord G (Sol majeur)",
-    text: `Accord de Sol (G).
-Majeur : 3e frette corde MI grave.
-Index : 2e frette corde LA.
-Annulaire : 3e frette corde MI aigu.
-Gratte toutes les cordes. Objectif : son clair, sans friser.`
+    html: coachLesson({
+      title: "G",
+      intro: "Aujourd’hui : <b>Sol (G)</b>. Il est un peu plus “étiré”, mais ultra utile pour plein de chansons.",
+      chord: {
+        name: "G",
+        frets: [3,2,0,0,0,3],
+        fingers: [2,1,0,0,0,3],
+        mute: [],
+        open: [2,3,4],
+        fromFret: 1,
+        play: "✅ Toutes les cordes",
+        avoid: "🚫 Aucune",
+        tip: "Garde le pouce derrière le manche. Main ouverte, pas crispée."
+      },
+      steps: [
+        { label: "Majeur (2)", text: "3e frette, corde <b>Mi grave</b> (6e)." },
+        { label: "Index (1)", text: "2e frette, corde <b>La</b> (5e)." },
+        { label: "Annulaire (3)", text: "3e frette, corde <b>Mi aigu</b> (1re)." },
+      ],
+      strum: "Bas — Bas — Bas — Bas (lent)",
+      exercise: "Enchaîne <b>Em → G → Em → G</b> : 20 fois lentement.",
+    }) + helpBlock([
+      "Ça sonne étouffé : doigts trop à plat → pointe des doigts + ongles courts si possible.",
+      "Douleur pouce : pouce trop haut → recule-le derrière le manche.",
+      "Tu rates la 1re corde : annulaire trop bas → relève légèrement l’annulaire."
+    ])
   },
+
   {
     id: 3,
     title: "Jour 3 — Accord C (Do majeur)",
-    text: `Accord de Do (C).
-Index : 1re frette corde SI.
-Majeur : 2e frette corde RÉ.
-Annulaire : 3e frette corde LA.
-Ne joue pas la corde MI grave.
-Objectif : placer les doigts sans toucher les autres cordes.`
+    html: coachLesson({
+      title: "C",
+      intro: "On apprend <b>Do (C)</b>. Ici, il y a une règle : <b>on évite la corde Mi grave</b>.",
+      chord: {
+        name: "C",
+        frets: [0,3,2,0,1,0],
+        fingers: [0,3,2,0,1,0],
+        mute: [0],
+        open: [3,5],
+        fromFret: 1,
+        play: "✅ De la corde La jusqu’à Mi aigu",
+        avoid: "🚫 Mi grave (6e corde)",
+        tip: "Pour éviter la 6e corde : vise la 5e corde en premier avec le médiator."
+      },
+      steps: [
+        { label: "Index (1)", text: "1re frette, corde <b>Si</b> (2e)." },
+        { label: "Majeur (2)", text: "2e frette, corde <b>Ré</b> (4e)." },
+        { label: "Annulaire (3)", text: "3e frette, corde <b>La</b> (5e)." },
+      ],
+      strum: "Bas (à partir de La) — Bas — Bas",
+      exercise: "20 fois : <b>G → C</b> (très lent). Cherche un son propre.",
+    }) + helpBlock([
+      "Tu touches Mi grave : déplace ton attaque, commence sur La (5e corde).",
+      "Ça frise sur Si : index trop loin → rapproche-le de la frette 1.",
+      "Main tendue : recule un peu le coude, relâche l’épaule."
+    ])
   },
+
   {
     id: 4,
     title: "Jour 4 — Accord D (Ré majeur)",
-    text: `Accord de Ré (D).
-Index : 2e frette MI aigu.
-Annulaire : 3e frette SI.
-Majeur : 2e frette SOL.
-Joue surtout les 4 cordes du bas.
-Objectif : son propre + rythme régulier.`
+    html: coachLesson({
+      title: "D",
+      intro: "Aujourd’hui : <b>Ré (D)</b>. On va surtout jouer les cordes du bas. C’est un accord “propre”.",
+      chord: {
+        name: "D",
+        frets: [0,0,0,2,3,2],
+        fingers: [0,0,0,1,3,2],
+        mute: [0,1],
+        open: [2],
+        fromFret: 1,
+        play: "✅ Sol + Si + Mi aigu (et Ré si tu veux)",
+        avoid: "🚫 Mi grave et La (cordes du haut)",
+        tip: "Attaque plutôt à partir de la corde Ré (4e) ou Sol (3e)."
+      },
+      steps: [
+        { label: "Index (1)", text: "2e frette, corde <b>Sol</b> (3e)." },
+        { label: "Annulaire (3)", text: "3e frette, corde <b>Si</b> (2e)." },
+        { label: "Majeur (2)", text: "2e frette, corde <b>Mi aigu</b> (1re)." },
+      ],
+      strum: "Bas (cordes du bas) — Bas-Haut — Bas-Haut",
+      exercise: "Fais sonner chaque corde une par une, puis gratte doucement.",
+    }) + helpBlock([
+      "Tu joues trop de cordes : vise à partir de Ré/Sol, pas depuis le haut.",
+      "Ça buzz sur Mi aigu : majeur trop loin → près de la frette 2.",
+      "Doigts se touchent : écarte légèrement index/majeur (forme un petit “triangle”)."
+    ])
   },
+
   {
     id: 5,
     title: "Jour 5 — Accord Am (La mineur)",
-    text: `Accord de La mineur (Am).
-Index : 1re frette SI.
-Majeur : 2e frette RÉ.
-Annulaire : 2e frette SOL.
-Poignet détendu, doigts arrondis.
-Objectif : 5 minutes + 20 changements Am ↔ Em.`
+    html: coachLesson({
+      title: "Am",
+      intro: "Voici <b>La mineur (Am)</b>. Très important. Il ressemble à Do, mais plus simple à jouer.",
+      chord: {
+        name: "Am",
+        frets: [0,0,2,2,1,0],
+        fingers: [0,0,2,3,1,0],
+        mute: [0],
+        open: [1,5],
+        fromFret: 1,
+        play: "✅ De la corde La jusqu’à Mi aigu",
+        avoid: "🚫 Mi grave (6e corde)",
+        tip: "Index “barre” légère sur Si (2e corde), bien arrondi."
+      },
+      steps: [
+        { label: "Index (1)", text: "1re frette, corde <b>Si</b> (2e)." },
+        { label: "Majeur (2)", text: "2e frette, corde <b>Ré</b> (4e)." },
+        { label: "Annulaire (3)", text: "2e frette, corde <b>Sol</b> (3e)." },
+      ],
+      strum: "Bas (à partir de La) — Bas — Bas-Haut",
+      exercise: "20 changements : <b>Am ↔ Em</b> lentement.",
+    }) + helpBlock([
+      "Corde Si étouffée : index touche Mi aigu → replie/arrondis l’index.",
+      "Tu touches Mi grave : commence ton grattage sur La (5e corde).",
+      "Main fatiguée : fais 2 minutes, pause 30 sec, puis recommence."
+    ])
   },
+
   {
     id: 6,
-    title: "Jour 6 — Enchaînements",
-    text: `Enchaînement : Em → G → C → D.
-Change lentement. 1 accord par seconde.
-Cherche la précision, pas la vitesse.
-Objectif : 10 passages propres.`
+    title: "Jour 6 — Enchaînements (Em → G → C → D)",
+    html: `
+      <div class="coach">
+        <div class="bubble">
+          <div class="who">👨‍🏫 Coach</div>
+          <div>
+            Aujourd’hui, on devient fluide : <b>Em → G → C → D</b>.
+            Objectif : changer sans panique, même si c’est lent.
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="chord-card">
+            <div class="chord-title"><b>Règle d’or</b><small>précision</small></div>
+            <div class="lesson-text">
+              1) Pose les doigts “ensemble” plutôt qu’un par un.<br/>
+              2) Si un accord sonne faux : <b>arrête</b>, corrige, puis repars.<br/>
+              3) Mieux vaut <b>lent et propre</b> que rapide et sale.
+            </div>
+
+            <div class="pills" id="comboPills">
+              <div class="pill" data-combo="Em → G">Em → G</div>
+              <div class="pill" data-combo="G → C">G → C</div>
+              <div class="pill" data-combo="C → D">C → D</div>
+              <div class="pill" data-combo="D → Em">D → Em</div>
+            </div>
+            <p class="muted" id="comboHint">Clique sur un enchaînement pour voir une astuce.</p>
+          </div>
+
+          <div class="chord-card">
+            <div class="chord-title"><b>Exercice</b><small>5 minutes</small></div>
+            <div class="lesson-text">
+              Mets un rythme simple : <b>Bas — Bas — Bas — Bas</b><br/>
+              4 temps par accord, et tu changes.<br/><br/>
+              1) Em (4 temps)<br/>
+              2) G (4 temps)<br/>
+              3) C (4 temps) (évite Mi grave)<br/>
+              4) D (4 temps) (cordes du bas)<br/><br/>
+              Fais 5 tours.
+            </div>
+          </div>
+        </div>
+      </div>
+      ${helpBlock([
+        "Si tu bloques sur G→C : fais juste G↔C 20 fois, sans rythme au début.",
+        "Si C sonne faux : vérifie que tu ne joues pas Mi grave.",
+        "Si D est brouillon : vise les cordes du bas (Ré/Sol/Si/Mi aigu)."
+      ])}
+    `
   },
+
   {
     id: 7,
-    title: "Jour 7 — Première progression (G D Em C)",
-    text: `Ta première progression : G → D → Em → C.
-Fais 4 temps par accord.
-Rythme : bas bas bas bas, puis bas-haut bas-haut.
-Objectif : 3 minutes sans t’arrêter.`
-  },
+    title: "Jour 7 — Mini chanson (G → D → Em → C)",
+    html: `
+      <div class="coach">
+        <div class="bubble">
+          <div class="who">👨‍🏫 Coach</div>
+          <div>
+            Aujourd’hui : ta première “chanson” avec une progression classique :
+            <b>G → D → Em → C</b>. Bravo, c’est un vrai cap.
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="chord-card">
+            <div class="chord-title"><b>Rythme</b><small>simple</small></div>
+            <div class="lesson-text">
+              4 temps par accord :<br/>
+              <b>Bas — Bas — Bas — Bas</b><br/><br/>
+              Puis si tu veux monter :<br/>
+              <b>Bas-Haut — Bas-Haut</b>
+            </div>
+
+            <div class="chord-title" style="margin-top:10px"><b>Important</b><small>cordes</small></div>
+            <div class="lesson-text">
+              Pour <b>D</b> : plutôt les cordes du bas.<br/>
+              Pour <b>C</b> : évite la corde Mi grave.
+            </div>
+          </div>
+
+          <div class="chord-card">
+            <div class="chord-title"><b>Exercice</b><small>3 minutes</small></div>
+            <div class="lesson-text">
+              Fais la boucle sans t’arrêter :<br/>
+              G (4 temps) → D (4 temps) → Em (4 temps) → C (4 temps)<br/><br/>
+              Objectif : rester régulier. Même lent, c’est parfait.
+            </div>
+          </div>
+        </div>
+      </div>
+      ${helpBlock([
+        "Si tu te perds : dis les accords à voix haute pendant que tu joues.",
+        "Si le rythme casse : ralentis et repars sur Bas — Bas — Bas — Bas.",
+        "Si C/D sonnent bizarres : respecte les cordes à éviter."
+      ])}
+    `
+  }
 ];
+
+/* ------------------ UI existante (avec améliorations) ------------------ */
 
 const els = {
   lessonList: document.getElementById("lessonList"),
@@ -130,7 +451,9 @@ function selectLesson(id){
   currentLessonId = id;
   const lesson = lessons.find(l => l.id === id);
   els.lessonTitle.textContent = lesson.title;
-  els.lessonText.textContent = lesson.text;
+
+  // IMPORTANT : on affiche du HTML (dialogue + diagrammes)
+  els.lessonText.innerHTML = lesson.html;
 
   const p = loadProgress();
   els.toggleDoneBtn.textContent = p[id] ? "↩️ Marquer comme non fait" : "✅ Marquer comme fait";
@@ -138,6 +461,26 @@ function selectLesson(id){
   const vids = loadVideos();
   els.videoUrl.value = vids[id] || "";
   applyVideoEmbed(els.videoUrl.value);
+
+  // Petit bonus interactif jour 6
+  if (id === 6){
+    const pills = document.getElementById("comboPills");
+    const hint = document.getElementById("comboHint");
+    if (pills && hint){
+      pills.querySelectorAll(".pill").forEach(el => {
+        el.onclick = () => {
+          const combo = el.getAttribute("data-combo");
+          const tips = {
+            "Em → G": "Astuce : garde l’index “ancre” près de la 2e case, et bouge le reste.",
+            "G → C": "Astuce : vise d’abord l’annulaire du C (3e frette La), puis complète.",
+            "C → D": "Astuce : remonte la main vers les cordes du bas, attaque depuis Ré/Sol.",
+            "D → Em": "Astuce : relâche, puis pose index+majeur ensemble sur la 2e case."
+          };
+          hint.textContent = tips[combo] || "Astuce : fais-le très lentement, propre.";
+        };
+      });
+    }
+  }
 }
 
 function toggleDone(){
@@ -169,7 +512,6 @@ function populateVoices(){
     els.voiceSelect.appendChild(opt);
   });
 
-  // Pré-sélection FR si possible
   const frIndex = list.findIndex(v => (v.lang || "").toLowerCase().startsWith("fr"));
   els.voiceSelect.selectedIndex = frIndex >= 0 ? frIndex : 0;
 }
@@ -187,7 +529,13 @@ function speakCurrent(){
   speechSynthesis.cancel();
 
   const lesson = lessons.find(l => l.id === currentLessonId);
-  const utt = new SpeechSynthesisUtterance(lesson.text);
+
+  // On lit une version “texte” (sans HTML)
+  const tmp = document.createElement("div");
+  tmp.innerHTML = lesson.html;
+  const plain = tmp.innerText;
+
+  const utt = new SpeechSynthesisUtterance(plain);
   utt.lang = "fr-FR";
   const v = getSelectedVoice();
   if (v) utt.voice = v;
@@ -204,11 +552,18 @@ function applyVideoEmbed(url){
   const trimmed = (url || "").trim();
   if (!trimmed) return;
 
-  // YouTube simple (watch?v=) -> embed
   let embed = trimmed;
+
+  // Shorts -> watch?v=
+  const shorts = trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+  if (shorts) embed = `https://www.youtube.com/embed/${shorts[1]}`;
+
+  // YouTube watch
   const ytWatch = trimmed.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/);
-  const youtuBe = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
   if (ytWatch) embed = `https://www.youtube.com/embed/${ytWatch[1]}`;
+
+  // youtu.be
+  const youtuBe = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
   if (youtuBe) embed = `https://www.youtube.com/embed/${youtuBe[1]}`;
 
   const iframe = document.createElement("iframe");
@@ -239,7 +594,6 @@ function startTimer(){
       clearInterval(timerHandle);
       timerHandle = null;
       els.timerStatus.textContent = "Terminé ✅";
-      // petit bip (si autorisé)
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const o = ctx.createOscillator();
@@ -280,8 +634,6 @@ els.startTimer.onclick = startTimer;
 els.stopTimer.onclick = stopTimer;
 
 window.addEventListener("beforeunload", () => stopSpeak());
-
-// Les voix arrivent parfois après chargement
 speechSynthesis.onvoiceschanged = populateVoices;
 
 renderLessonList();
