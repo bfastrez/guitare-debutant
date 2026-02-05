@@ -96,3 +96,88 @@ body{
   .layout{grid-template-columns: 1fr}
   .sidebar{position:relative; top:0}
 }
+/* --- Coach + visuels accords --- */
+.coach {
+  display: grid;
+  gap: 12px;
+}
+
+.bubble {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.bubble .who {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 860px){
+  .grid2 { grid-template-columns: 1fr; }
+}
+
+.chord-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  padding: 12px;
+}
+
+.chord-title {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin: 0 0 8px 0;
+}
+.chord-title small { color: var(--muted); }
+
+.chord-svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin: 8px 0;
+}
+
+.kv {
+  display:grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.kv b { color: var(--text); font-weight: 800; }
+
+.pills {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top: 8px;
+}
+.pill {
+  border:1px solid var(--border);
+  padding:8px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  cursor:pointer;
+  user-select:none;
+  font-weight:700;
+}
+.pill:hover { background: rgba(255,255,255,.07); }
+
+details.help {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.03);
+}
+details.help summary { cursor:pointer; font-weight:800; }
+.help ul { margin: 8px 0 0 18px; color: var(--muted); }
